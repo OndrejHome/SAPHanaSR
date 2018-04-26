@@ -2413,7 +2413,6 @@ function saphana_promote_clone() {
   #
   # first check, if we WILL be PRIMARY (checking HANA status)
   #
-  set_hana_attribute ${NODENAME} "PROMOTED" ${ATTR_NAME_HANA_CLONE_STATE[@]}
   check_for_primary; primary_status=$?
   #
   if [ $primary_status -eq $HANA_STATE_PRIMARY ]; then
@@ -2421,6 +2420,7 @@ function saphana_promote_clone() {
      # as we are already planned to be PRIMARY we only mark the node as PROMOTED
      #
      super_ocf_log info "ACT: Promoted $SID-$InstanceName as master (no hdbnsutil action needed)."
+     set_hana_attribute ${NODENAME} "PROMOTED" ${ATTR_NAME_HANA_CLONE_STATE[@]}
      rc=$OCF_SUCCESS;
   else
      if [ $primary_status -eq $HANA_STATE_SECONDARY ]; then
@@ -2448,6 +2448,7 @@ function saphana_promote_clone() {
                 # TODO: PRIO3: check, if we need to destinguish between HANA_STATE_PRIMARY, HANA_STATE_SECONDARY, HANA_STATE_DEFECT
                 #
                 if check_for_primary; then
+                    set_hana_attribute ${NODENAME} "PROMOTED" ${ATTR_NAME_HANA_CLONE_STATE[@]}
                     rc=$OCF_SUCCESS;
                 else
                     rc=$OCF_FAILED_MASTER
