@@ -2447,12 +2447,23 @@ function saphana_promote_clone() {
                 #
                 # TODO: PRIO3: check, if we need to destinguish between HANA_STATE_PRIMARY, HANA_STATE_SECONDARY, HANA_STATE_DEFECT
                 #
-                if check_for_primary; then
-                    set_hana_attribute ${NODENAME} "PROMOTED" ${ATTR_NAME_HANA_CLONE_STATE[@]}
-                    rc=$OCF_SUCCESS;
-                else
-                    rc=$OCF_FAILED_MASTER
-                fi
+		check_for_primary; primary_status=$?
+		case "$primary_status" in
+                    $HANA_STATE_PRIMARY)
+                        set_hana_attribute ${NODENAME} "PROMOTED" ${ATTR_NAME_HANA_CLONE_STATE[@]}
+                        rc=$OCF_SUCCESS
+                        ;;
+                    $HANA_STATE_SECONDARY)
+                        # we run monitoring of secondary to change all needed node attributes as the 'monitor' operation would do
+                        saphana_monitor_secondary
+			# but still report the 'promote' as failure as we are SECONDARY
+                        rc=$OCF_ERR_GENERIC
+                        ;;
+                    *)
+                        super_ocf_log warn "ACT: saphana_promote_clone: HANA_STATE_DEFECT"
+                        rc=$OCF_FAILED_MASTER
+                        ;;
+                esac
                 ;;
              * )
                 super_ocf_log err "ACT: HANA SYNC STATUS IS NOT 'SOK' SO THIS HANA SITE COULD NOT BE PROMOTED"
@@ -2465,9 +2476,10 @@ function saphana_promote_clone() {
         # bsc#1027098 - do not stop SAP HANA if "only" HANA state is not correct
         # Let next monitor find, if that HANA instance is available or not
         rc=$OCF_SUCCESS;
+	# run secondary monitor to adjust node attributes as needed
+	saphana_monitor_secondary
      fi
   fi
-  rc=$?
   super_ocf_log info "FLOW $FUNCNAME rc=$rc"
   return $rc
 }
